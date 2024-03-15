@@ -182,7 +182,7 @@ app.get('/dashboard', requireAuth, async function (req, res) {
         const timetable = timetables[i];
         // for each day in the timetable
         for (const day in timetable) {
-            if (timetable.hasOwnProperty(day)) {
+            if (Object.prototype.hasOwnProperty.call(timetable, day)) {
                 const slots = timetable[day];
                 // for each slot in the day
                 for (let k = 0; k < slots.length; k++) {
