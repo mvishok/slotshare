@@ -1,0 +1,145 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>slotShare Authentication</title>
+    <meta name="author" content="David Grzyb">
+    <meta name="description" content="">
+
+    <!-- Tailwind -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Karla:400,700&display=swap');
+
+        .font-family-karla {
+            font-family: karla;
+        }
+        body{
+            overflow: hidden;
+        }
+
+        .logo {
+        font-family: "JetBrains Mono", monospace;
+        font-optical-sizing: auto;
+        font-style: normal;
+        }
+    </style>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+</head>
+<body class="bg-white font-family-karla h-screen">
+
+    <div class="w-full flex flex-wrap">
+
+        <!-- Register Section -->
+        <div class="w-full md:w-1/2 flex flex-col authform">
+
+            <div class="flex justify-center md:justify-start pt-12 md:pl-12 md:-mb-12">
+                <a class="bg-black text-white font-bold text-xl p-4 logo" alt="Logo">slotshare.</a>
+            </div>
+
+            <div class="flex flex-col justify-center md:justify-start my-auto pt-8 md:pt-0 px-8 md:px-24 lg:px-32">
+                <p class="text-center text-3xl">Get Started</p>
+                <p id="status" class="text-center text-1x1" style="color: red;">&#x200B;</p>
+                <form class="flex flex-col " id="form" >
+                    <div class="flex flex-col">
+                        <label for="name" class="text-lg">Name</label>
+                        <input name="name" type="text" id="name" placeholder="John Smith" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline" required />
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="email" class="text-lg">Email</label>
+                        <input name="email" type="email" id="email" placeholder="your@email.com" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline" required />
+                    </div>
+    
+                    <div class="flex flex-col pt-4">
+                        <label for="password" class="text-lg">Password</label>
+                        <input name="password" type="password" id="password" placeholder="Password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline" required />
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="confirm-password" class="text-lg">Confirm Password</label>
+                        <input type="password" id="confirm-password" placeholder="Password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline" required />
+                    </div>
+    
+                    <input type="submit" id="btn" value="Register" class="bg-black text-white font-bold text-lg hover:bg-gray-700 p-2 mt-8" />
+                </form>
+                <div class="text-center pt-4">
+                    <p>Already have an account? <a href="/login" class="underline font-semibold" style="cursor:pointer;">Log in here.</a></p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Image Section -->
+        <div class="w-1/2 shadow-2xl">
+            <img class="object-cover w-full h-screen hidden md:block" src="/images/background-right.png" alt="Background" />
+        </div>
+    </div>
+
+<script>
+    document.getElementById('name').focus();
+
+    document.getElementById('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        document.getElementById('btn').classList.add('bg-gray-700');
+        document.getElementById('btn').disabled = "disabled";
+
+        let name = document.getElementById('name').value;
+        let email = document.getElementById('email').value;
+        let password = document.getElementById('password').value;
+        let confirm_password = document.getElementById('confirm-password').value;
+
+        if (name == '' || email == '' || password == '' || confirm_password == '') {
+            setStatus('Please fill in all fields', 'red');
+            document.getElementById('btn').classList.remove('bg-gray-700');
+            document.getElementById('btn').disabled = "";
+            return;
+        }
+
+        if (password != confirm_password) {
+            setStatus('Passwords do not match', 'red');
+            document.getElementById('btn').classList.remove('bg-gray-700');
+            document.getElementById('btn').disabled = "";
+            return;
+        }
+
+        fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            withCredentials: true,
+            body: JSON.stringify({
+                name: name,
+                email: email,
+                password: password
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == 'success') {
+                setStatus("SUCCESS: " +data.message, 'green');
+                setTimeout(function() {
+                    window.location.href = '/login';
+                }, 1000);
+            } else {
+                setStatus("ERROR: "+data.message, 'red');
+                document.getElementById('btn').classList.remove('bg-gray-700');
+                document.getElementById('btn').disabled = "";
+            }
+        });
+    });
+
+    function setStatus(message, color) {
+        document.getElementById('status').innerText = message;
+        document.getElementById('status').style.color = color;
+    }  
+</script>
+
+</body>
+</html>
