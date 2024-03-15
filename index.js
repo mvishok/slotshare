@@ -101,14 +101,14 @@ app.get('/verify', function (req, res) {
             return;
         }
         if (result.rows.length > 0) {
-            client.query('UPDATE otp SET code = $1 WHERE userId = $2', [code, req.session.userId], function (err, result) {
+            client.query('UPDATE otp SET code = $1 WHERE userId = $2', [code, req.session.userId], function (err) {
                 if (err) {
                     res.json({ status: 'error', message: 'Database error' });
                     return;
                 }
             });
         } else {
-            client.query('INSERT INTO otp (userId, code) VALUES ($1, $2)', [req.session.userId, code], function (err, result) {
+            client.query('INSERT INTO otp (userId, code) VALUES ($1, $2)', [req.session.userId, code], function (err) {
                 if (err) {
                     res.json({ status: 'error', message: 'Database error' });
                     return;
@@ -334,7 +334,7 @@ app.post('/register', function (req, res) {
     let code = Math.floor(Math.random() * 900000) + 100000;
 
     //insert into database
-    client.query('INSERT INTO users (name, email, password, code) VALUES ($1, $2, $3, $4)', [name, email, password, code], function (err, result) {
+    client.query('INSERT INTO users (name, email, password, code) VALUES ($1, $2, $3, $4)', [name, email, password, code], function (err) {
         if (err) {
             console.log(err);
             res.json({ status: 'error', message: 'Database error' });
@@ -381,7 +381,7 @@ app.post('/addFriend', requireAuth, function (req, res) {
             return;
         }
 
-        client.query('UPDATE users SET friends = array_append(friends, $1) WHERE id = $2', [result.rows[0].code, req.session.userId], function (err, result) {
+        client.query('UPDATE users SET friends = array_append(friends, $1) WHERE id = $2', [result.rows[0].code, req.session.userId], function (err) {
             if (err) {
                 res.json({ status: 'error', message: 'Database error' });
                 return;
@@ -413,7 +413,7 @@ app.post('/deleteFriend', requireAuth, function (req, res) {
             return;
         }
 
-        client.query('UPDATE users SET friends = array_remove(friends, $1) WHERE id = $2', [userCode, req.session.userId], function (err, result) {
+        client.query('UPDATE users SET friends = array_remove(friends, $1) WHERE id = $2', [userCode, req.session.userId], function (err) {
             if (err) {
                 res.json({ status: 'error', message: 'Database error' });
                 return;
@@ -450,7 +450,7 @@ app.post('/timetable', requireAuth, function (req, res) {
             var tid = result.rows[0].tid;
 
             //finally, update user with the timetable id "tid"
-            client.query('UPDATE users SET tid = $1 WHERE id = $2', [tid, req.session.userId], function (err, result) {
+            client.query('UPDATE users SET tid = $1 WHERE id = $2', [tid, req.session.userId], function (err) {
                 if (err) {
                     res.json({ status: 'error', message: 'Database error' });
                     return;
@@ -466,7 +466,7 @@ app.post('/timetable', requireAuth, function (req, res) {
                 }
                 var tid = result.rows[0].tid;
                 //finally, update user with the timetable id "tid"
-                client.query('UPDATE users SET tid = $1 WHERE id = $2', [tid, req.session.userId], function (err, result) {
+                client.query('UPDATE users SET tid = $1 WHERE id = $2', [tid, req.session.userId], function (err) {
                     if (err) {
                         res.json({ status: 'error', message: 'Database error' });
                         return;
@@ -518,7 +518,7 @@ app.post('/verify', function (req, res) {
         }
         if (result.rows[0].code == code) {
             //update "verified" column in "users" table
-            client.query('UPDATE users SET verified = true WHERE id = $1', [req.session.userId], function (err, result) {
+            client.query('UPDATE users SET verified = true WHERE id = $1', [req.session.userId], function (err) {
                 if (err) {
                     res.json({ status: 'error', message: 'Database error' });
                     return;
