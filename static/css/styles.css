@@ -39,7 +39,7 @@ header .logo{
 }
 
 header .navigation a{
-    color: #000;
+    color: #fff;
     text-decoration: none;
     font-size: 17px;
     font-weight: 600;
@@ -55,7 +55,7 @@ header .navigation a:not(:last-child){
 }
 
 header .navigation a:hover{
-    background: #fff;
+    background: #000;
 
 }
 
