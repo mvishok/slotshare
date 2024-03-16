@@ -1,0 +1,131 @@
+<html>
+    <head>
+        <title>slotshare.</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            html {
+            height: 100%;
+            }
+            body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background-color: #f8f8f8;
+            height: 100%;
+            overflow: hidden;
+            }
+            .menu {
+            height: 40pt;
+            width: 100%;
+            padding-left: 12pt;
+            background-color: #007bff;
+            position: fixed;
+            display: flex;
+            align-items: center;
+            box-shadow: 0pt 0pt 30pt rgba(0,0,0,0.2);
+            /*right align the menu items*/
+            justify-content: flex-end;
+            
+            }
+            .menu a {
+            margin-right: 12pt;
+            font-size: 13pt;
+            text-decoration: none;
+            color: white;
+            }
+            .menu a:link, .menu a:visited {
+            color: white;
+            }
+            .about {
+            background-color: #f8f8f8;
+            color: black;
+            height: calc(100% - 60pt);
+            padding-top: 60pt;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            }
+            .inner-about {
+            width: 100%;
+            max-width: 600pt;
+            padding: 10pt;
+            }
+            .inner-about h1 {
+            margin: 0;
+            font-size: 35pt;
+            margin-bottom: -10pt;
+            }
+            .inner-about p {
+            margin: 0;
+            margin-bottom: 8pt;
+            font-size: 15pt;
+            }
+            .social {
+            color:white;
+            margin-bottom: 0pt;
+            
+            }
+            .social a {
+            color: white;
+            margin-right: 5pt;
+            font-size: 1.8rem;
+            }
+            .social a:link, .social a:visited {
+            color: #fff;
+            text-decoration: none;
+            }
+
+            
+            /*on hover of second icon (instagram), change icon color to instagram color*/
+            .social a:nth-child(2):hover {
+                color: #e4405f;
+            }
+            /*on hover of third icon (linkedin), change icon color to linkedin color*/
+            .social a:nth-child(3):hover {
+                color: #0e76a8;
+            }
+
+            @import url('https://fonts.googleapis.com/css?family=Karla:400,700&display=swap');
+
+            .font-family-karla {
+                font-family: karla;
+            }
+
+            .logo {
+            font-family: "JetBrains Mono", monospace;
+            font-optical-sizing: auto;
+            font-style: normal;
+            background-color: black;
+            padding: 1.5rem;
+            font-weight: bold;
+            font-size: 3rem;
+            color: white;
+            }
+        </style>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+<body>
+<div class="menu">
+  <a href="/login">LOGIN</a>
+  <a href="/register" style="padding-right: 12px;">REGISTER</a>
+</div>
+<div class="about">
+  <div class="inner-about">
+    <center><h1><span class="logo">slotshare.</span></h1></center><br>
+    <center><p style="padding-top:2rem;font-size:2rem;">Find a common free slot, amongst your friends.</p></center>
+    <br><br>
+    <center><p style="font-size: 1.2rem;">Feel free to get in touch with me for any inquiries, collaborations, or just a friendly chat!</p></center>
+    <center><p class="social">
+      <a href="https://github.com/mvishok">
+        <i class="fa fa-github"></i>
+      </a>
+      <a href="https://instagram.com/vishokmanikantan">
+        <i class="fa fa-instagram"></i>
+      </a>
+      <a href="https://linkedin.com/in/vishokmanikantan">
+        <i class="fa fa-linkedin-square"></i>
+      </a>
+    </p></center>
+  </div>
+</div>
+</body>
+</html> 
