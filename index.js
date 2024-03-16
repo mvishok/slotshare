@@ -23,7 +23,7 @@ app.use(session({
     proxy: true,
     name: 'slotsharesessid',
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
     }
