@@ -231,8 +231,8 @@ var events = JSON.parse('<%- JSON.stringify(events) %>');
         $('#book input[name="name"]').val(event.name);
         $('#book textarea').val(event.description);
         $('#book input[name="venue"]').val(event.venue);
-        $('#book select').eq(0).val(event.d);
-        $('#book select').eq(1).val(event.s);
+        $('#book select:eq(0)')[event.d+1].selected = true;
+        $('#book select:eq(1)')[event.s+1].selected = true;
 
         //now, invitees is an array of arrays. example: [[name, option], [name, option], [name, option]]
         var invitees = event.invitees;
