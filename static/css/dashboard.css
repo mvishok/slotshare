@@ -49,4 +49,38 @@ a:hover{
 .slot span {
   font-size:24px;
   color:white;
+  user-select: none;
+}
+
+.modal.drawer {
+  display: flex !important;
+  pointer-events: none;
+}
+.modal.drawer * {
+  pointer-events: none;
+}
+.modal.drawer .modal-dialog {
+  margin: 0px;
+  display: flex;
+  flex: auto;
+  transform: translate(25%, 0);
+}
+.modal.drawer .modal-dialog .modal-content {
+  border: none;
+  border-radius: 0px;
+}
+.modal.drawer .modal-dialog .modal-content .modal-body {
+  overflow: auto;
+}
+.modal.drawer.show {
+  pointer-events: auto;
+}
+.modal.drawer.show * {
+  pointer-events: auto;
+}
+.modal.drawer.show .modal-dialog {
+  transform: translate(0, 0);
+}
+.modal.drawer.right-align {
+  flex-direction: row-reverse;
 }

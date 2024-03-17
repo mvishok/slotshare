@@ -7,6 +7,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const sendOtp = require('./mail');
+const sendRSVP = require('./mail');
 const client = require('./db');
 
 const app = express();
@@ -254,6 +255,134 @@ app.get('/timetable', requireAuth, function (req, res) {
 
             res.render('timetable', { timetable: tt });
         });
+    });
+});
+
+app.get('/rsvp', requireAuth, async function (req, res) {
+    //get rsvp id from url, get opt from url
+    // https://slotshare.vishok.tech/rsvp?id=1&opt=yes
+    const id = req.query.id;
+    const opt = req.query.opt;
+
+    //if id or opt is empty, error
+    if (!id || !opt) {
+        res.json({ status: 'error', message: 'Invalid request' });
+        return;
+    }
+
+    //if opt is not yes or no, error
+    if (opt !== 'yes' && opt !== 'no') {
+        res.json({ status: 'error', message: 'Invalid request' });
+        return;
+    }
+
+    //make sure the event exists
+    client.query('SELECT * FROM events WHERE eid = $1', [id], async function (err, result) {
+        if (err) {
+            res.json({ status: 'error', message: 'Database error' });
+            return;
+        }
+        if (result.rows.length === 0) {
+            res.json({ status: 'error', message: 'Event does not exist' });
+            return;
+        }
+
+        //get userCode from database without callback hell
+        const userCodeResult = await client.query('SELECT code FROM users WHERE id = $1', [req.session.userId]);
+        if (userCodeResult.rows.length === 0) {
+            res.json({ status: 'error', message: 'Database error' });
+            return;
+        }
+        const userCode = userCodeResult.rows[0].code;
+
+        //make sure the user is invited to the event without callback hell
+        const isInvited = client.query('SELECT invitees FROM events WHERE eid = $1', [id], function (err, result) {
+            if (err) {
+                res.json({ status: 'error', message: 'Database error' });
+                return;
+            }
+            if (result.rows.length === 0) {
+                res.json({ status: 'error', message: 'Database error' });
+                return;
+            }
+            let invited = false;
+            for (let i = 0; i < result.rows[0].invitees.length; i++) {
+                if (result.rows[0].invitees[i][0] === userCode) {
+                    invited = true;
+                    break;
+                }
+            }
+            //if not invited, error
+            if (!invited) {
+                res.json({ status: 'error', message: 'You are not invited to this event' });
+                return;
+            }
+        });
+
+        const inviteesResult = await client.query('SELECT invitees FROM events WHERE eid = $1', [id]);
+        if (inviteesResult.rows.length === 0) {
+            res.json({ status: 'error', message: 'Database error' });
+            return;
+        }
+        const invitees = inviteesResult.rows[0].invitees;
+        for (let i = 0; i < invitees.length; i++) {
+            if (invitees[i][0] === userCode) {
+                invitees[i][1] = opt === 'yes' ? 1 : 2;
+                break;
+            }
+        }
+        //update the invitees
+        //make sure invitees is a string, not an array of arrays
+        client.query('UPDATE events SET invitees = $1 WHERE eid = $2', [JSON.stringify(invitees), id], function (err) {
+            if (err) {
+                res.json({ status: 'error', message: 'Database error' });
+                return;
+            }
+            
+            res.redirect('/events');
+        });
+       
+    });
+});
+
+app.get('/events', requireAuth, function (req, res) {
+    //get all events where the current user is the creator
+    client.query('SELECT * FROM events WHERE creator = $1', [req.session.userId], async function (err, result) {
+        if (err) {
+            res.json({ status: 'error', message: 'Database error' });
+            return;
+        }
+
+        //create an array of events
+        const finalEvents = [];
+
+        //insert each event into the array; but have only d, s, name, venue, description.
+        //also have invitees with their rsvp status
+        let c = 0;
+        for (const row of result.rows) {
+            const event = {
+                id: c++,
+                d: row.d,
+                s: row.s,
+                name: row.name,
+                venue: row.venue,
+                description: row.description,
+                invitees: []
+            };
+            for (const invitee of row.invitees) {
+                //get the name of the invitee
+                const nameResult = await client.query('SELECT name FROM users WHERE code = $1', [invitee[0]]);
+                if (nameResult.rows.length === 0) {
+                    var name = 'Unknown';
+                } else {
+                    name = nameResult.rows[0].name;
+                }
+                event.invitees.push({ name: name, rsvp: invitee[1] });
+            }
+            finalEvents.push(event);
+        }
+        
+        res.render('events', { events: finalEvents });
     });
 });
 
@@ -528,6 +657,112 @@ app.post('/verify', function (req, res) {
         } else {
             res.json({ status: 'error', message: 'Code is incorrect' });
         }
+    });
+});
+
+app.post("/slot", requireAuth, async function (req, res) {
+    //get the slot and day from request. findout who is free at that time and day, return the names with boolean value like {name: friendname, free: true} OF CURRENT USER
+    const slot = req.body.slot;
+    const day = req.body.day;
+    //get all friends of the current user, get their tids, get their timetables, check if they are free at that time and day, individually and append to an array
+    let freeFriends = [];
+
+    const friendsResult = await client.query('SELECT friends FROM users WHERE id = $1', [req.session.userId]);
+
+    if (friendsResult.rows.length === 0) {
+        friendsResult = { rows: [{}] };
+    }
+    const friends = friendsResult.rows[0].friends;
+
+    const tidsResult = await client.query('SELECT DISTINCT tid FROM users WHERE code = ANY($1)', [friends]);
+    const tids = tidsResult.rows.map(row => row.tid);
+
+    //now we have tids of all friends. get their timetables, and check if time and day is free for that tid. if it is free, append all friends with that tid to freeFriends array
+    for (const tid of tids) {
+        const friendTimetableResult = await client.query('SELECT d1, d2, d3, d4, d5 FROM timetable WHERE tid = $1', [tid]);
+        if (friendTimetableResult.rows.length > 0) {
+            const friendTimetable = friendTimetableResult.rows[0];
+            //if the slot is free for that day and time, find all names of that tid and append to freeFriends array, make sure to exclude the current user and make sure if he is friends with the current user
+            //else if he is not free, append the name with false
+            const friendNameResult = await client.query('SELECT name,code FROM users WHERE tid = $1 AND id != $2 AND code = ANY($3)', [tid, req.session.userId, friends]);
+            if (friendNameResult.rows.length > 0) {
+                if (friendTimetable["d"+day][slot] === 0) {
+                    for (const row of friendNameResult.rows) {
+                        freeFriends.push({ name: row.name, code: row.code, free: true });
+                    }
+                } else {
+                    for (const row of friendNameResult.rows) {
+                        freeFriends.push({ name: row.name, code: row.code, free: false });
+                    }
+                }   
+            }
+        }
+    }
+
+    
+    res.json({ status: 'success', friends: freeFriends });
+
+});
+
+app.post('/book', requireAuth, async function (req, res) {
+    //get day slot name venue description and friends [int array] from request
+    const day = req.body.day;
+    const slot = req.body.slot;
+    const name = req.body.name;
+    const venue = req.body.venue;
+    const description = req.body.description;
+    var friends = req.body.friends;
+
+    //if any of the values are empty, error
+    if (!day || !slot || !name || !venue || !description || !friends) {
+        res.json({ status: 'error', message: 'All fields are required' });
+        return;
+    }
+
+    //make sure all friends in "friends" array are actually friends of the current user
+    const friendsResult = await client.query('SELECT friends FROM users WHERE id = $1', [req.session.userId]);
+    if (friendsResult.rows.length === 0) {
+        friendsResult = { rows: [{}] };
+    }
+    const friendsArray = friendsResult.rows[0].friends;
+    for (const friend of friends) {
+        if (!friendsArray.includes(friend)) {
+            res.json({ status: 'error', message: 'One or more friends are not valid' });
+            return;
+        }
+    }
+
+    //get current user's name
+    const userResult = await client.query('SELECT name FROM users WHERE id = $1', [req.session.userId]);
+    if (userResult.rows.length === 0) {
+        res.json({ status: 'error', message: 'User not found' });
+        return;
+    }
+    const userName = userResult.rows[0].name;
+    //insert into events table
+    //friends should be an array of arrays, each array containing the friend code and the rsvp status (0 for not rsvped, 1 for yes, 2 for no)
+    friends = friends.map(friend => [friend, 0]);
+
+    client.query('INSERT INTO events (name, d, s, description, venue, invitees, creator) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING eid', [name, day, slot, description, venue, JSON.stringify(friends), req.session.userId], function (err,result) {
+        if (err) {
+            res.json({ status: 'error', message: 'Database error' });
+            return;
+        }
+        //get event id from last insert
+        const eid = result.rows[0].eid;
+
+        //get email of each friend and send an email to them (for rsvp)
+        client.query('SELECT name, email FROM users WHERE code = ANY($1)', [friends], function (err, r) {
+            if (err) {
+                res.json({ status: 'error', message: 'Database error' });
+                return;
+            }
+            for (const row of r.rows) {
+                //(name, email, event, d, s, description, venue, creator)
+                sendRSVP(row.name, row.email, name, day, slot, description, venue, userName, eid);
+            }
+        });
+        res.json({ status: 'success', message: 'Event created successfully' });
     });
 });
 

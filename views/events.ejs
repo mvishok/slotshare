@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>slotshare Dashboard - Friends</title>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css'>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Karla'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.2.0/sweetalert2.min.css">    
+    
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.2.0/sweetalert2.all.min.js"></script>
+
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/timetable.css">
+
+    <style>
+        /* scrollbar */
+        ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+        -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+        -webkit-border-radius: 10px;
+        border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+        -webkit-border-radius: 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.3);
+        -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb:window-inactive {
+        background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!-- overlay -->
+<div id="sidebar-overlay" class="overlay w-100 vh-100 position-fixed d-none"></div>
+
+<!-- sidebar -->
+<div class="col-md-3 col-lg-2 px-0 position-fixed h-100 bg-white shadow sidebar" id="sidebar">
+  <h1 class="bootstrap text-primary d-flex my-4 justify-content-center"><img src="images/logo.png" /></h1>
+  <div class="list-group rounded-0">
+    <a href="dashboard" class="list-group-item list-group-item-action border-0 d-flex align-items-center">
+      <span class="bi bi-border-all"></span>
+      <span class="ml-2">Dashboard</span>
+    </a>
+    <a href="#" class="list-group-item list-group-item-action border-0 align-items-center">
+      <span class="bi bi-person-plus"></span>
+      <span class="ml-2">Friends</span>
+    </a>
+    <a href="timetable" class="list-group-item list-group-item-action border-0 align-items-center">
+      <span class="bi bi-table"></span>
+      <span class="ml-2">My Timetable</span>
+    </a>
+
+    <a href="/events" class="list-group-item list-group-item-action active border-0 align-items-center">
+      <span class="bi bi-calendar-event-fill"></span>
+      <span class="ml-2">Events</span>
+    </a>
+
+  </div>
+</div>
+
+<div class="col-md-9 col-lg-10 ml-md-auto px-0 ms-md-auto">
+
+  <nav class="w-100 d-flex px-4 py-2 mb-4 shadow-sm">
+    <!-- close sidebar -->
+    <button class="btn py-0 d-lg-none" id="open-sidebar">
+      <span class="bi bi-list text-primary h3"></span>
+    </button>
+    <div class="ml-auto">
+      <a href="/logout" ><button class="btn py-0 d-flex align-items-center" aria-expanded="false">
+        <span class="bi bi-box-arrow-right text-primary h4"></span>
+      </button>
+      </a>
+    </div>
+  </nav>
+  <!-- main content -->
+  <main class="p-4 min-vh-100">
+
+    <div class="rounded bg-white shadow">
+
+        <h1 class="text-center pt-4">Manage Events</h1>
+
+        <div class="container table-responsive py-5"> 
+        <table class="table table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Day - Slot</th>
+                <th scope="col">Venue</th>
+                <th scope="col">View</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% events.forEach(function(event, index) { %>
+                    <tr id="row_<%= index + 1 %>">
+                        <th scope="row">
+                            <%= event.name %>
+                        </th>
+                        <td>
+                            <%= event.d %> - <%= event.s %>
+                        </td>
+                        <td>
+                            <%= event.venue %>
+                        </td>
+                        <td>
+                            <button id="view" type="submit" style="all:unset;cursor:pointer;" class="btn-delete text-danger"><span onclick="showDetails('<%= event.id %>')" class="bi bi-three-dots"></span></button>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+
+        </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<div class="modal fade drawer right-align" id="book" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" style="user-select: none;" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">
+            <span class="bi bi-bookmark"></span>
+            <span>Book Slot</span>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="row">
+
+            <div class="col-sm-12 form-group">
+              <input type="text" class="form-control" placeholder="Event Name" name="name" disabled>
+            </div>
+
+            
+            <div class="col-sm-12 form-group">
+              <textarea class="form-control" rows="5" placeholder="Description" disabled></textarea>
+            </div>
+
+            
+            <div class="col-sm-12 form-group">
+              <input type="text" class="form-control" placeholder="Venue" name="venue" disabled>
+            </div>
+
+            <!-- display seperator and show header for section-->
+            <div class="col-sm-6 form-group">
+              <select class="form-control" style="color:#999" disabled>
+                <option>Select Day Order</option>
+                <option>Day Order 1</option>
+                <option>Day Order 2</option>
+                <option>Day Order 3</option>
+                <option>Day Order 4</option>
+                <option>Day Order 5</option>
+              </select>
+
+            </div>
+            <div class="col-sm-6 form-group">
+              
+              <select class="form-control" style="color:#999" disabled>
+                <option>Select Slot</option>
+                <option>8:00 - 8:50</option>
+                <option>8:50 - 9:40</option>
+                <option>9:45 - 10:35</option>
+                <option>10:40 - 11:30</option>
+                <option>11:35 - 12:25</option>
+                <option>12:30 - 1:20</option>
+                <option>1:25 - 2:15</option>
+                <option>2:20 - 3:10</option>
+                <option>3:10 - 4:00</option>
+                <option>4:00 - 4:50</option>
+              </select>
+
+            </div>
+
+            <!-- display invite people: -->
+
+            <div class="col-sm-12 form-group">
+              <center>
+                <h5>Invited Friends</h5>
+                <div id="friends">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+              </center>
+              
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" onclick="clearSidebar()" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- partial -->
+<script src='https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js'></script>
+
+<script>
+var events = JSON.parse('<%- JSON.stringify(events) %>');
+</script>
+
+<script>
+    //on click of view button, show details of event(id) in the modal
+    function showDetails(id) {
+        //we have details of the event in the events array in the script tag. show the details in the modal from the array
+        var event = events.find(e => e.id == id);
+
+        //set the values of the event in the modal
+        $('#book input[name="name"]').val(event.name);
+        $('#book textarea').val(event.description);
+        $('#book input[name="venue"]').val(event.venue);
+        $('#book select').eq(0).val(event.d);
+        $('#book select').eq(1).val(event.s);
+
+        //now, invitees is an array of arrays. example: [[name, option], [name, option], [name, option]]
+        var invitees = event.invitees;
+        var inviteesHtml = '';
+        //if the option is 0, it is pending. keep the color as default. if it is 1, it is yes. keep the color as green and also "checked". if it is 2, it is no. keep the color as red, dont check it
+        invitees.forEach(invitee => {
+            inviteesHtml += '<div class="form-check form-check-inline">';
+            inviteesHtml += '<input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" ' + (invitee.rsvp == 1 ? 'checked' : '') + ' disabled>';
+            inviteesHtml += '<label class="form-check-label" for="inlineRadio1" style="color:' + (invitee.rsvp == 1 ? 'green' : (invitee.rsvp == 2 ? 'red' : '')) + '" >' + invitee.name + '</label>';
+            inviteesHtml += '</div><br>';
+        });
+
+        //set the invitees in the modal
+        $('#book #friends').html(inviteesHtml);
+
+        //show the modal
+        $('#book').modal('show');
+
+    }
+
+    
+    function clearSidebar() {
+      //make all input fields empty
+      $("input").val('');
+      $('textarea').val('');
+      //make all select fields to default
+      $("#book select").prop('selectedIndex', 0);
+      //make all checkboxes unchecked
+      $("#friends input").prop('checked', false);
+      //hide availability
+      $("#availability").hide();
+    }
+
+</script>
+</body>
+</html>
