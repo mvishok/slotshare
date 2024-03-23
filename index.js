@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
@@ -24,7 +23,7 @@ app.use(session({
     proxy: true,
     name: 'slotsharesessid',
     cookie: {
-        secure: true,
+        secure: true, //change
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
     }
@@ -345,9 +344,15 @@ app.get('/rsvp', requireAuth, async function (req, res) {
     });
 });
 
-app.get('/events', requireAuth, function (req, res) {
-    //get all events where the current user is the creator
-    client.query('SELECT * FROM events WHERE creator = $1', [req.session.userId], async function (err, result) {
+app.get('/events', requireAuth, async function (req, res) {
+    const userResult = await client.query('SELECT code FROM users WHERE id = $1', [req.session.userId]);
+    if (userResult.rows.length === 0) {
+        return res.json({ status: 'error', message: 'User not found' });
+    }
+    const userCode = userResult.rows[0]['code'];
+
+    //get all events where the current user is the creator OR is invited. invitees array contains the user code and the rsvp status. array of arrays, so check accordingly
+    client.query('SELECT * FROM events WHERE creator = $1 OR $2 = ANY(SELECT (jsonb_array_elements(invitees)->>0)::integer)', [req.session.userId, userCode], async function (err, result) {
         if (err) {
             res.json({ status: 'error', message: 'Database error' });
             return;
@@ -358,28 +363,43 @@ app.get('/events', requireAuth, function (req, res) {
 
         //insert each event into the array; but have only d, s, name, venue, description.
         //also have invitees with their rsvp status
-        let c = 0;
         for (const row of result.rows) {
             const event = {
-                id: c++,
+                id: row.eid,
                 d: row.d,
                 s: row.s,
                 name: row.name,
                 venue: row.venue,
                 description: row.description,
-                invitees: []
+                invitees: [],
+                owner: false,
+                rsvp: 0
             };
-            for (const invitee of row.invitees) {
-                //get the name of the invitee
-                const nameResult = await client.query('SELECT name FROM users WHERE code = $1', [invitee[0]]);
-                if (nameResult.rows.length === 0) {
-                    var name = 'Unknown';
-                } else {
-                    name = nameResult.rows[0].name;
+            //if event is not created by the current user, dont show invitees
+            if (row.creator === req.session.userId) {
+                for (const invitee of row.invitees) {
+                    //get the name of the invitee
+                    const nameResult = await client.query('SELECT name FROM users WHERE code = $1', [invitee[0]]);
+                    if (nameResult.rows.length === 0) {
+                        var name = 'Unknown';
+                    } else {
+                        name = nameResult.rows[0].name;
+                    }
+                    event.invitees.push({ name: name, rsvp: invitee[1] });
                 }
-                event.invitees.push({ name: name, rsvp: invitee[1] });
+                event.owner = true;
+                finalEvents.push(event);
+
+            } else {
+                //check current user's rsvp status
+                for (const invitee of row.invitees) {
+                    if (invitee[0] === userCode) {
+                        event.rsvp = invitee[1];
+                        break;
+                    }
+                }
+                finalEvents.push(event);
             }
-            finalEvents.push(event);
         }
         
         res.render('events', { events: finalEvents });

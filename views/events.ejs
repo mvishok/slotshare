@@ -135,7 +135,7 @@
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLabel">
             <span class="bi bi-bookmark"></span>
-            <span>Book Slot</span>
+            <span>Event</span>
           </h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
@@ -194,19 +194,21 @@
 
             <div class="col-sm-12 form-group">
               <center>
-                <h5>Invited Friends</h5>
+                <h5 id="header">Invited Friends</h5>
                 <div id="friends">
-                    <div class="spinner-border text-primary" role="status">
-                      <span class="sr-only">Loading...</span>
-                    </div>
                 </div>
               </center>
               
             </div>
           </div>
         </div>
-
+      
         <div class="modal-footer">
+        <div class="mr-auto" style="float: left;" id="rsvp" style="display: none;">
+          <h5 id="rsvpt">RSVP:</h5>
+          <button type="button" class="btn btn-success" >YES</button>
+          <button type="button" class="btn btn-danger" >NO</button>
+        </div>
           <button type="button" onclick="clearSidebar()" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
       </div>
@@ -234,20 +236,62 @@ var events = JSON.parse('<%- JSON.stringify(events) %>');
         $('#book select:eq(0) option')[event.d+1].selected = true;
         $('#book select:eq(1) option')[event.s+1].selected = true;
 
-        //now, invitees is an array of arrays. example: [[name, option], [name, option], [name, option]]
-        var invitees = event.invitees;
-        var inviteesHtml = '';
-        //if the option is 0, it is pending. keep the color as default. if it is 1, it is yes. keep the color as green and also "checked". if it is 2, it is no. keep the color as red, dont check it
-        invitees.forEach(invitee => {
-            inviteesHtml += '<div class="form-check form-check-inline">';
-            inviteesHtml += '<input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" ' + (invitee.rsvp == 1 ? 'checked' : '') + ' disabled>';
-            inviteesHtml += '<label class="form-check-label" for="inlineRadio1" style="color:' + (invitee.rsvp == 1 ? 'green' : (invitee.rsvp == 2 ? 'red' : '')) + '" >' + invitee.name + '</label>';
-            inviteesHtml += '</div><br>';
-        });
 
-        //set the invitees in the modal
-        $('#book #friends').html(inviteesHtml);
+        //if owner is true
+        if (event.owner) {
+          //now, invitees is an array of arrays. example: [[name, option], [name, option], [name, option]]
+          var invitees = event.invitees;
+          var inviteesHtml = '';
+          //if the option is 0, it is pending. keep the color as default. if it is 1, it is yes. keep the color as green and also "checked". if it is 2, it is no. keep the color as red, dont check it
+          invitees.forEach(invitee => {
+              inviteesHtml += '<div class="form-check form-check-inline">';
+              inviteesHtml += '<input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" ' + (invitee.rsvp == 1 ? 'checked' : '') + ' disabled>';
+              inviteesHtml += '<label class="form-check-label" for="inlineRadio1" style="color:' + (invitee.rsvp == 1 ? 'green' : (invitee.rsvp == 2 ? 'red' : '')) + '" >' + invitee.name + '</label>';
+              inviteesHtml += '</div><br>';
+          });
 
+          //set the invitees in the modal
+          $('#book #friends').html(inviteesHtml);
+
+          //hide the rsvp buttons
+          $('#book #rsvp').hide();
+          //show header
+          $('#book #header').show();
+
+        } else {
+          //if the user is not the owner, show the rsvp buttons
+          $('#book #rsvp').show();
+
+          //if event.rsvp is 0, show the rsvp buttons. if it is 1, show NO and hide YES. if it is 2, show YES and hide NO
+          if (event.rsvp == 0) {
+            $('#book #rsvp button:eq(0)').show();
+            $('#book #rsvp button:eq(1)').show();
+          } else if (event.rsvp == 1) {
+            //change #rsvpt to "Change RSVP to:"
+            $('#book #rsvpt').text('Change RSVP to:');
+            $('#book #rsvp button:eq(0)').hide();
+            $('#book #rsvp button:eq(1)').show();
+          } else {
+            $('#book #rsvpt').text('Change RSVP to:');
+            $('#book #rsvp button:eq(0)').show();
+            $('#book #rsvp button:eq(1)').hide();
+          }
+
+          //add event handlers to the rsvp buttons to redirect to /rsvp?id={id}&opt=yes
+          $('#book #rsvp button:eq(0)').click(() => {
+            //disable the buttons
+            $('#book #rsvp button').prop('disabled', true);
+            window.location.href = '/rsvp?id=' + id + '&opt=yes';
+          });
+          //add event handlers to the rsvp buttons to redirect to /rsvp?id={id}&opt=no
+          $('#book #rsvp button:eq(1)').click(() => {
+            //disable the buttons
+            $('#book #rsvp button').prop('disabled', true);
+            window.location.href = '/rsvp?id=' + id + '&opt=no';
+          });
+          //hide header
+          $('#book #header').hide();
+        }
         //show the modal
         $('#book').modal('show');
 
@@ -262,8 +306,8 @@ var events = JSON.parse('<%- JSON.stringify(events) %>');
       $("#book select").prop('selectedIndex', 0);
       //make all checkboxes unchecked
       $("#friends input").prop('checked', false);
-      //hide availability
-      $("#availability").hide();
+      //hide invitees
+      $('#friends').html('');
     }
 
 $(document).ready(function() {
