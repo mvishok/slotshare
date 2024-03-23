@@ -23,7 +23,7 @@ app.use(session({
     proxy: true,
     name: 'slotsharesessid',
     cookie: {
-        secure: true, //change
+        secure: true,
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
     }
@@ -352,7 +352,7 @@ app.get('/events', requireAuth, async function (req, res) {
     const userCode = userResult.rows[0]['code'];
 
     //get all events where the current user is the creator OR is invited. invitees array contains the user code and the rsvp status. array of arrays, so check accordingly
-    client.query('SELECT * FROM events WHERE creator = $1 OR $2 = ANY(SELECT (jsonb_array_elements(invitees)->>0)::integer)', [req.session.userId, userCode], async function (err, result) {
+    client.query('SELECT * FROM events WHERE (creator = $1 OR $2 = ANY(SELECT (jsonb_array_elements(invitees)->>0)::integer)) AND done = false;', [req.session.userId, userCode], async function (err, result) {
         if (err) {
             res.json({ status: 'error', message: 'Database error' });
             return;
@@ -763,7 +763,7 @@ app.post('/book', requireAuth, async function (req, res) {
     //friends should be an array of arrays, each array containing the friend code and the rsvp status (0 for not rsvped, 1 for yes, 2 for no)
     friends = friends.map(friend => [friend, 0]);
 
-    client.query('INSERT INTO events (name, d, s, description, venue, invitees, creator) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING eid', [name, day, slot, description, venue, JSON.stringify(friends), req.session.userId], function (err,result) {
+    client.query('INSERT INTO events (name, d, s, description, venue, invitees, creator, done) VALUES ($1, $2, $3, $4, $5, $6, $7, false) RETURNING eid', [name, day, slot, description, venue, JSON.stringify(friends), req.session.userId], function (err,result) {
         if (err) {
             res.json({ status: 'error', message: 'Database error' });
             return;
@@ -783,6 +783,40 @@ app.post('/book', requireAuth, async function (req, res) {
             }
         });
         res.json({ status: 'success', message: 'Event created successfully' });
+    });
+});
+
+app.get('/complete', requireAuth, function (req, res) {
+    //get the event id from get parameter
+    const id = req.query.id;
+    //if id is empty, error
+    if (!id) {
+        res.json({ status: 'error', message: 'Invalid request' });
+        return;
+    }
+    //make sure the event exists
+    client.query('SELECT * FROM events WHERE eid = $1 AND creator = $2', [id, req.session.userId], function (err, result) {
+        if (err) {
+            res.json({ status: 'error', message: 'Database error' });
+            return;
+        }
+        if (result.rows.length === 0) {
+            res.json({ status: 'error', message: 'Event does not exist' });
+            return;
+        }
+        //make sure the user is the creator of the event
+        if (result.rows[0].creator !== req.session.userId) {
+            res.json({ status: 'error', message: 'You are not the creator of this event' });
+            return;
+        }
+        //update the event with "done" column as true
+        client.query('UPDATE events SET done = true WHERE eid = $1', [id], function (err) {
+            if (err) {
+                res.json({ status: 'error', message: 'Database error' });
+                return;
+            }
+            res.redirect('/events');
+        });
     });
 });
 

@@ -209,6 +209,9 @@
           <button type="button" class="btn btn-success" >YES</button>
           <button type="button" class="btn btn-danger" >NO</button>
         </div>
+        <div class="mr-auto" style="float: left;" id="done" style="display: none;">
+          <button type="button" class="btn btn-success" >MARK AS COMPLETE</button>
+        </div>
           <button type="button" onclick="clearSidebar()" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
       </div>
@@ -258,6 +261,17 @@ var events = JSON.parse('<%- JSON.stringify(events) %>');
           //show header
           $('#book #header').show();
 
+          //show the mark as complete button
+          $('#book #done').show();
+
+          //add event handler to the mark as complete button to redirect to /complete?id={id} 
+          $('#book #done button').click(() => {
+            
+            $('#book #done button').prop('disabled', true);
+            window.location.href = '/complete?id=' + id;
+
+          });
+
         } else {
           //if the user is not the owner, show the rsvp buttons
           $('#book #rsvp').show();
@@ -291,7 +305,10 @@ var events = JSON.parse('<%- JSON.stringify(events) %>');
           });
           //hide header
           $('#book #header').hide();
+          //hide the mark as complete button
+          $('#book #done').hide();
         }
+
         //show the modal
         $('#book').modal('show');
 
